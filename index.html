@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="ja" class="h-full bg-slate-900 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PWA & Favicon 統合ジェネレーター Pro</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- JSZip & FileSaver -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <style>
+    /* Custom Scrollbar & Utility Styles */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    .checkerboard-bg {
+      background-color: #1e293b;
+      background-image: 
+        linear-gradient(45deg, #0f172a 25%, transparent 25%), 
+        linear-gradient(-45deg, #0f172a 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #0f172a 75%), 
+        linear-gradient(-45deg, transparent 75%, #0f172a 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+    }
+    .mask-circle {
+      clip-path: circle(50% at 50% 50%);
+    }
+  </style>
+
+    <!-- PWA設定 -->
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+    <link rel="icon" type="image/svg+xml" href="./icon.svg">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="PWAアイコン">
+</head>
+<body class="h-full flex flex-col font-sans antialiased selection:bg-indigo-500 selection:text-white">
+
+  <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700/60 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <i class="fa-solid fa-[#000] fa-icons text-xl text-white"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight text-white flex items-center gap-2">
+            PWA & Favicon Generator
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Pro</span>
+          </h1>
+          <p class="text-xs text-slate-400">1枚の画像から全アイコンセット（ICO / PNG / Maskable / SVG）を一括生成</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="demoBtn" class="px-3 py-1.5 text-xs font-medium bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-all duration-200 flex items-center gap-2">
+          <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
+          サンプル画像で試す
+        </button>
+        <button id="downloadAllBtn" disabled class="px-4 py-2 text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-lg shadow-lg shadow-indigo-600/30 transition-all duration-200 flex items-center gap-2 disabled:shadow-none disabled:cursor-not-allowed">
+          <i class="fa-solid fa-file-zipper"></i>
+          一括ZIPダウンロード
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Left Column: Controls & Upload (5 cols) -->
+    <section class="lg:col-span-5 flex flex-col gap-6">
+
+      <!-- Upload Box -->
+      <div class="bg-slate-800/50 border border-slate-700/80 rounded-2xl p-5 shadow-xl">
+        <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-cloud-arrow-up text-indigo-400"></i> 1. 元画像の指定
+        </h2>
+        
+        <div id="dropZone" class="border-2 border-dashed border-slate-600 hover:border-indigo-500 transition-colors duration-200 rounded-xl p-6 text-center cursor-pointer bg-slate-900/50 flex flex-col items-center justify-center min-h-[180px] group relative overflow-hidden">
+          <input type="file" id="fileInput" accept="image/*" class="hidden">
+          
+          <div id="dropZonePrompt" class="flex flex-col items-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform duration-200">
+              <i class="fa-solid fa-image text-2xl"></i>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-slate-200">画像をドラッグ＆ドロップ</p>
+              <p class="text-xs text-slate-400 mt-1">またはクリックしてファイル選択 (クリップボード貼り付け可)</p>
+            </div>
+            <span class="text-[10px] text-slate-500 bg-slate-800 px-2 py-1 rounded">推奨: 512×512px 以上の正方形PNG/SVG</span>
+          </div>
+
+          <!-- Image Preview Area in DropZone -->
+          <div id="sourcePreviewWrapper" class="hidden absolute inset-0 bg-slate-900 flex items-center justify-center p-2 group">
+            <img id="sourcePreview" class="max-h-full max-w-full object-contain rounded-lg shadow-md" src="" alt="Source preview">
+            <div class="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
+              <span class="text-xs text-white bg-indigo-600 px-3 py-1.5 rounded-lg shadow flex items-center gap-1.5">
+                <i class="fa-solid fa-arrows-rotate"></i> 画像を変更
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/50 border border-slate-700/80 rounded-2xl p-5 shadow-xl flex-1 flex flex-col gap-5">
+        <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-indigo-400"></i> 2. アセット調整・カスタマイズ
+        </h2>
+
+        <!-- Background Color for Maskable / Solid Icons -->
+        <div class="space-y-2">
+          <label class="text-xs font-medium text-slate-300 flex justify-between items-center">
+            <span>背景色 (Maskable / 非透過出力用)</span>
+            <span id="bgColorHex" class="text-slate-400 font-mono">#060814</span>
+          </label>
+          <div class="flex items-center gap-2">
+            <input type="color" id="bgColorPicker" value="#060814" class="w-10 h-10 rounded-lg cursor-pointer border border-slate-600 bg-slate-900 p-0.5">
+            <div class="flex gap-1.5 flex-1 overflow-x-auto pb-1">
+              <button data-color="#060814" class="preset-color-btn text-xs px-2.5 py-1.5 rounded-md bg-[#060814] border border-slate-700 text-slate-300 hover:border-indigo-500 transition whitespace-nowrap">Dark Blue</button>
+              <button data-color="#0f172a" class="preset-color-btn text-xs px-2.5 py-1.5 rounded-md bg-slate-900 border border-slate-700 text-slate-300 hover:border-indigo-500 transition whitespace-nowrap">Slate</button>
+              <button data-color="#ffffff" class="preset-color-btn text-xs px-2.5 py-1.5 rounded-md bg-white border border-slate-300 text-slate-900 hover:border-indigo-500 transition whitespace-nowrap">White</button>
+              <button data-color="#000000" class="preset-color-btn text-xs px-2.5 py-1.5 rounded-md bg-black border border-slate-700 text-slate-300 hover:border-indigo-500 transition whitespace-nowrap">Black</button>
+              <button data-color="transparent" class="preset-color-btn text-xs px-2.5 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-300 hover:border-indigo-500 transition whitespace-nowrap">透過</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Maskable Image Scale / Zoom Slider -->
+        <div class="space-y-2">
+          <div class="flex justify-between items-center">
+            <label class="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-magnifying-glass-plus text-indigo-400"></i> 画像スケール（大きさ）
+            </label>
+            <span id="scaleVal" class="text-xs font-mono text-indigo-400">80%</span>
+          </div>
+          <input type="range" id="scaleSlider" min="30" max="150" value="80" class="w-full accent-indigo-500 bg-slate-700 h-2 rounded-lg cursor-pointer">
+          <p class="text-[11px] text-slate-400">
+            安全領域は中央80%の円です。これより大きいとマスク形状によっては端が切れる場合があります。下の「自動調整」で安全な大きさにできます。
+          </p>
+        </div>
+
+        <!-- Position Offsets (X / Y) -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-1.5">
+            <div class="flex justify-between items-center">
+              <label class="text-xs font-medium text-slate-300">左右位置 (X)</label>
+              <span id="offsetXVal" class="text-xs font-mono text-indigo-400">0px</span>
+            </div>
+            <input type="range" id="offsetXSlider" min="-50" max="50" value="0" class="w-full accent-indigo-500 bg-slate-700 h-1.5 rounded-lg cursor-pointer">
+          </div>
+          <div class="space-y-1.5">
+            <div class="flex justify-between items-center">
+              <label class="text-xs font-medium text-slate-300">上下位置 (Y)</label>
+              <span id="offsetYVal" class="text-xs font-mono text-indigo-400">0px</span>
+            </div>
+            <input type="range" id="offsetYSlider" min="-50" max="50" value="0" class="w-full accent-indigo-500 bg-slate-700 h-1.5 rounded-lg cursor-pointer">
+          </div>
+        </div>
+
+        <!-- Preview Mask Toggle -->
+        <div class="pt-2 border-t border-slate-700/60 flex items-center justify-between">
+          <span class="text-xs font-medium text-slate-300">Maskableプレビュー形式</span>
+          <div class="flex rounded-lg bg-slate-900 p-1 border border-slate-700">
+            <button id="maskCircleBtn" class="px-2.5 py-1 text-xs rounded-md bg-indigo-600 text-white font-medium transition">丸型 (Circle)</button>
+            <button id="maskSquircleBtn" class="px-2.5 py-1 text-xs rounded-md text-slate-400 hover:text-white transition">角丸 (Squircle)</button>
+            <button id="maskSquareBtn" class="px-2.5 py-1 text-xs rounded-md text-slate-400 hover:text-white transition">正方形 (Full)</button>
+          </div>
+        </div>
+
+        <!-- Safe-zone Auto Fit -->
+        <div class="flex items-center gap-2">
+          <button id="autoFitBtn" class="flex-1 px-3 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-crop-simple"></i> 安全領域に自動調整 (Maskable)
+          </button>
+          <label class="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer whitespace-nowrap">
+            <input type="checkbox" id="guideToggle" class="accent-indigo-500" checked> ガイド円
+          </label>
+        </div>
+        <p class="text-[11px] text-slate-400">
+          自動調整: 背景色と異なる部分が安全領域（中央80%の円）に収まるよう、スケールと位置を自動で合わせます。
+        </p>
+
+        <!-- Manifest Settings (PWAジェネレーターと同一形式で生成) -->
+        <div class="pt-3 border-t border-slate-700/60 space-y-3">
+          <p class="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+            <i class="fa-solid fa-file-code text-indigo-400"></i> manifest.json 設定 (ジェネレーターと同一形式)
+          </p>
+          <div class="space-y-1.5">
+            <label class="text-[11px] text-slate-400">アプリ名 (name)</label>
+            <input type="text" id="mfName" placeholder="例: My Application" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition">
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-[11px] text-slate-400">短縮アプリ名 (short_name)</label>
+            <input type="text" id="mfShortName" placeholder="例: MyApp" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition">
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-[11px] text-slate-400">説明文 (description)</label>
+            <input type="text" id="mfDescription" placeholder="例: アプリの説明文" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition">
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-[11px] text-slate-400">アプリ識別子 (id の接頭辞)</label>
+            <input type="text" id="mfPrefix" placeholder="例: my_app" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition">
+          </div>
+          <p class="text-[11px] text-slate-500">背景色・テーマ色には上の「背景色」設定が反映されます（透過のときは #ffffff）。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="lg:col-span-7 flex flex-col gap-6">
+
+      <!-- Icon Cards Grid -->
+      <div class="bg-slate-800/50 border border-slate-700/80 rounded-2xl p-5 shadow-xl">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-cubes text-indigo-400"></i> 生成アイコン一覧 (全6種)
+          </h2>
+          <span id="statusBadge" class="text-xs px-2.5 py-1 rounded-full bg-slate-700 text-slate-400 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-slate-500"></span> 画像未読み込み
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="iconList">
+
+          <!-- 1. favicon.ico -->
+          <div class="bg-slate-900/80 border border-slate-700/60 rounded-xl p-3.5 flex items-center gap-3 relative group hover:border-slate-600 transition">
+            <div class="w-14 h-14 rounded-lg checkerboard-bg border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+              <canvas id="canvasFavicon" class="w-8 h-8 object-contain"></canvas>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="font-mono text-sm font-bold text-indigo-300 truncate">favicon.ico</span>
+                <span class="text-[10px] px-1.5 py-0.5 bg-slate-800 border border-slate-700 text-slate-400 rounded">ICO</span>
+              </div>
+              <p class="text-[11px] text-slate-400 truncate">ファビコン (16x16 / 32x32 / 48x48)</p>
+              <p class="text-[10px] text-slate-500">ブラウザタブ・ブックマーク用</p>
+            </div>
+            <button data-target="favicon.ico" class="download-single-btn p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-indigo-600 rounded-lg transition shrink-0 opacity-50 group-hover:opacity-100" disabled title="ダウンロード">
+              <i class="fa-solid fa-download text-sm"></i>
+            </button>
+          </div>
+
+          <!-- 2. icon-192x192.png -->
+          <div class="bg-slate-900/80 border border-slate-700/60 rounded-xl p-3.5 flex items-center gap-3 relative group hover:border-slate-600 transition">
+            <div class="w-14 h-14 rounded-lg checkerboard-bg border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+              <canvas id="canvas192" class="w-12 h-12 object-contain"></canvas>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="font-mono text-sm font-bold text-indigo-300 truncate">icon-192x192.png</span>
+              </div>
+              <p class="text-[11px] text-slate-400 truncate">192×192 px</p>
+              <p class="text-[10px] text-slate-500">Android標準 / タスクバー用</p>
+            </div>
+            <button data-target="icon-192x192.png" class="download-single-btn p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-indigo-600 rounded-lg transition shrink-0 opacity-50 group-hover:opacity-100" disabled title="ダウンロード">
+              <i class="fa-solid fa-download text-sm"></i>
+            </button>
+          </div>
+
+          <!-- 3. icon-512x512.png -->
+          <div class="bg-slate-900/80 border border-slate-700/60 rounded-xl p-3.5 flex items-center gap-3 relative group hover:border-slate-600 transition">
+            <div class="w-14 h-14 rounded-lg checkerboard-bg border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+              <canvas id="canvas512" class="w-12 h-12 object-contain"></canvas>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="font-mono text-sm font-bold text-indigo-300 truncate">icon-512x512.png</span>
+              </div>
+              <p class="text-[11px] text-slate-400 truncate">512×512 px</p>
+              <p class="text-[10px] text-slate-500">WebAPK / スプラッシュ画面用</p>
+            </div>
+            <button data-target="icon-512x512.png" class="download-single-btn p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-indigo-600 rounded-lg transition shrink-0 opacity-50 group-hover:opacity-100" disabled title="ダウンロード">
+              <i class="fa-solid fa-download text-sm"></i>
+            </button>
+          </div>
+
+          <!-- 4. maskable-512x512.png -->
+          <div class="bg-slate-900/80 border border-slate-700/60 rounded-xl p-3.5 flex items-center gap-3 relative group hover:border-slate-600 transition">
+            <div class="w-14 h-14 rounded-lg checkerboard-bg border border-slate-700 flex items-center justify-center overflow-hidden shrink-0 relative">
+              <canvas id="canvasMaskable" class="w-12 h-12 object-contain transition-all duration-200"></canvas>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="font-mono text-sm font-bold text-amber-300 truncate">maskable-512x512.png</span>
+              </div>
+              <p class="text-[11px] text-slate-400 truncate">512×512 px (Adaptive)</p>
+              <p class="text-[10px] text-slate-500">Android Adaptive Icon用 (丸型対応)</p>
+            </div>
+            <button data-target="maskable-512x512.png" class="download-single-btn p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-indigo-600 rounded-lg transition shrink-0 opacity-50 group-hover:opacity-100" disabled title="ダウンロード">
+              <i class="fa-solid fa-download text-sm"></i>
+            </button>
+          </div>
+
+          <!-- 5. apple-touch-icon.png -->
+          <div class="bg-slate-900/80 border border-slate-700/60 rounded-xl p-3.5 flex items-center gap-3 relative group hover:border-slate-600 transition">
+            <div class="w-14 h-14 rounded-lg checkerboard-bg border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+              <canvas id="canvasApple" class="w-12 h-12 object-contain rounded-[10px]"></canvas>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="font-mono text-sm font-bold text-indigo-300 truncate">apple-touch-icon.png</span>
+              </div>
+              <p class="text-[11px] text-slate-400 truncate">180×180 px</p>
+              <p class="text-[10px] text-slate-500">iOS Safari ホーム画面追加用</p>
+            </div>
+            <button data-target="apple-touch-icon.png" class="download-single-btn p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-indigo-600 rounded-lg transition shrink-0 opacity-50 group-hover:opacity-100" disabled title="ダウンロード">
+              <i class="fa-solid fa-download text-sm"></i>
+            </button>
+          </div>
+
+          <!-- 6. icon.svg -->
+          <div class="bg-slate-900/80 border border-slate-700/60 rounded-xl p-3.5 flex items-center gap-3 relative group hover:border-slate-600 transition">
+            <div class="w-14 h-14 rounded-lg checkerboard-bg border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+              <div id="svgContainer" class="w-12 h-12 flex items-center justify-center text-slate-500">
+                <i class="fa-solid fa-code text-lg"></i>
+              </div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="font-mono text-sm font-bold text-emerald-300 truncate">icon.svg</span>
+                <span class="text-[10px] px-1.5 py-0.5 bg-slate-800 border border-slate-700 text-slate-400 rounded">SVG</span>
+              </div>
+              <p class="text-[11px] text-slate-400 truncate">ベクター形式 (ファビコン用)</p>
+              <p class="text-[10px] text-slate-500">元がSVGならそのまま、画像は512pxに縮小。manifestには載せません</p>
+            </div>
+            <button data-target="icon.svg" class="download-single-btn p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-indigo-600 rounded-lg transition shrink-0 opacity-50 group-hover:opacity-100" disabled title="ダウンロード">
+              <i class="fa-solid fa-download text-sm"></i>
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Maskable Check Panel -->
+      <div class="bg-slate-800/50 border border-slate-700/80 rounded-2xl p-5 shadow-xl">
+        <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-2">
+          <i class="fa-solid fa-shield-halved text-amber-400"></i> Maskable チェック (3種マスク + 安全領域)
+        </h2>
+        <p class="text-[11px] text-slate-400 mb-4">生成した maskable アイコンを実際のマスク形状で表示します。赤い円が安全領域（中央80%）で、この中に収まっていればどの形状でも切れません。</p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <figure class="flex flex-col items-center gap-2">
+            <div class="w-24 h-24 bg-slate-900 border border-slate-700 overflow-hidden" style="border-radius:50%">
+              <img id="checkCircle" class="w-full h-full object-cover" alt="Circle mask preview">
+            </div>
+            <figcaption class="text-[11px] text-slate-400">Circle</figcaption>
+          </figure>
+          <figure class="flex flex-col items-center gap-2">
+            <div class="w-24 h-24 bg-slate-900 border border-slate-700 overflow-hidden" style="border-radius:30%">
+              <img id="checkSquircle" class="w-full h-full object-cover" alt="Squircle mask preview">
+            </div>
+            <figcaption class="text-[11px] text-slate-400">Squircle</figcaption>
+          </figure>
+          <figure class="flex flex-col items-center gap-2">
+            <div class="w-24 h-24 bg-slate-900 border border-slate-700 overflow-hidden" style="border-radius:12%">
+              <img id="checkRounded" class="w-full h-full object-cover" alt="Rounded square preview">
+            </div>
+            <figcaption class="text-[11px] text-slate-400">角丸 (Rounded)</figcaption>
+          </figure>
+          <figure class="flex flex-col items-center gap-2">
+            <canvas id="checkGuide" width="512" height="512" class="w-24 h-24 bg-slate-900 border border-slate-700"></canvas>
+            <figcaption class="text-[11px] text-slate-400">安全領域ガイド</figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <!-- Screenshot Maker Panel -->
+      <div class="bg-slate-800/50 border border-slate-700/80 rounded-2xl p-5 shadow-xl">
+        <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-2">
+          <i class="fa-solid fa-camera text-indigo-400"></i> アプリのスクリーンショット作成 (PWA用)
+        </h2>
+        <p class="text-[11px] text-slate-400 mb-4">アプリの画面キャプチャから、manifest 用の2サイズを作成します。インストール画面（情報が追加されたUI）の表示に必要です。中央で切り抜いて正確なサイズに合わせます。</p>
+        <div id="shotDropZone" class="border-2 border-dashed border-slate-600 hover:border-indigo-500 transition-colors duration-200 rounded-xl p-4 text-center cursor-pointer bg-slate-900/50">
+          <input type="file" id="shotFileInput" accept="image/*" class="hidden">
+          <p class="text-sm font-medium text-slate-200">スクリーンショット画像をクリックして選択</p>
+          <p class="text-xs text-slate-400 mt-1">またはドラッグ＆ドロップ (横長・縦長どちらでもOK)</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          <figure class="flex flex-col gap-2">
+            <canvas id="canvasShotWide" width="1280" height="720" class="w-full border border-slate-700 bg-slate-900 rounded-lg"></canvas>
+            <figcaption class="text-[11px] text-slate-400 flex items-center justify-between">
+              <span class="font-mono">screenshot-wide.png (1280×720)</span>
+              <button data-target="screenshot-wide.png" class="download-single-btn px-2 py-1 text-slate-300 bg-slate-800 hover:bg-indigo-600 rounded-md transition" disabled title="ダウンロード">
+                <i class="fa-solid fa-download text-xs"></i>
+              </button>
+            </figcaption>
+          </figure>
+          <figure class="flex flex-col gap-2">
+            <canvas id="canvasShotMobile" width="390" height="844" class="w-full max-w-[220px] border border-slate-700 bg-slate-900 rounded-lg"></canvas>
+            <figcaption class="text-[11px] text-slate-400 flex items-center justify-between max-w-[220px]">
+              <span class="font-mono">screenshot-mobile.png (390×844)</span>
+              <button data-target="screenshot-mobile.png" class="download-single-btn px-2 py-1 text-slate-300 bg-slate-800 hover:bg-indigo-600 rounded-md transition" disabled title="ダウンロード">
+                <i class="fa-solid fa-download text-xs"></i>
+              </button>
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/50 border border-slate-700/80 rounded-2xl p-5 shadow-xl flex-1 flex flex-col gap-4">
+        <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
+          <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-code text-indigo-400"></i> 3. 組み込み用コードスニペット
+          </h2>
+          <!-- Tab selector -->
+          <div class="flex gap-2">
+            <button id="tabHtmlBtn" class="px-3 py-1 text-xs rounded-lg bg-indigo-600 text-white font-medium transition">HTML (&lt;head&gt;)</button>
+            <button id="tabManifestBtn" class="px-3 py-1 text-xs rounded-lg bg-slate-800 text-slate-400 hover:text-white transition">manifest.json</button>
+          </div>
+        </div>
+
+        <!-- HTML Snippet Panel -->
+        <div id="htmlSnippetPanel" class="relative flex-1">
+          <pre class="bg-slate-900 border border-slate-700/80 rounded-xl p-4 text-xs font-mono text-slate-300 overflow-x-auto h-40 leading-relaxed"><code id="codeHtml">&lt;!-- Favicon &amp; App Icons --&gt;
+&lt;link rel="icon" href="./favicon.ico" sizes="32x32"&gt;
+&lt;link rel="icon" href="./icon.svg" type="image/svg+xml"&gt;
+&lt;link rel="apple-touch-icon" href="./apple-touch-icon.png"&gt;
+&lt;link rel="manifest" href="./manifest.json"&gt;</code></pre>
+          <button id="copyHtmlBtn" class="absolute top-3 right-3 px-2.5 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 rounded-lg transition flex items-center gap-1.5">
+            <i class="fa-regular fa-copy"></i> コピー
+          </button>
+        </div>
+
+        <!-- Manifest Snippet Panel -->
+        <div id="manifestSnippetPanel" class="relative flex-1 hidden">
+          <pre class="bg-slate-900 border border-slate-700/80 rounded-xl p-4 text-xs font-mono text-slate-300 overflow-x-auto h-40 leading-relaxed"><code id="codeManifest"></code></pre>
+          <button id="copyManifestBtn" class="absolute top-3 right-3 px-2.5 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 rounded-lg transition flex items-center gap-1.5">
+            <i class="fa-regular fa-copy"></i> コピー
+          </button>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <div id="toast" class="fixed bottom-6 right-6 px-4 py-3 bg-slate-800 border border-slate-600 text-white text-sm rounded-xl shadow-2xl flex items-center gap-3 transition-all duration-300 transform translate-y-20 opacity-0 z-50">
+    <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+    <span id="toastMsg">通知メッセージ</span>
+  </div>
+
+  <!-- Hidden Working Canvases for Exporters -->
+  <div class="hidden">
+    <canvas id="workCanvas16" width="16" height="16"></canvas>
+    <canvas id="workCanvas32" width="32" height="32"></canvas>
+    <canvas id="workCanvas48" width="48" height="48"></canvas>
+  </div>
+
+  <script>
+    // State Variables
+    let loadedImage = null;
+    let loadedSvgText = null; // 元画像がSVGのとき、そのベクター内容を保持する
+    let generatedBlobs = {}; // filename -> Blob
+    let currentMaskShape = 'circle'; // 'circle', 'squircle', 'square'
+
+    // DOM Elements
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const sourcePreview = document.getElementById('sourcePreview');
+    const sourcePreviewWrapper = document.getElementById('sourcePreviewWrapper');
+    const demoBtn = document.getElementById('demoBtn');
+    const downloadAllBtn = document.getElementById('downloadAllBtn');
+    const statusBadge = document.getElementById('statusBadge');
+    
+    // Controls
+    const bgColorPicker = document.getElementById('bgColorPicker');
+    const bgColorHex = document.getElementById('bgColorHex');
+    const scaleSlider = document.getElementById('scaleSlider');
+    const scaleVal = document.getElementById('scaleVal');
+    const offsetXSlider = document.getElementById('offsetXSlider');
+    const offsetXVal = document.getElementById('offsetXVal');
+    const offsetYSlider = document.getElementById('offsetYSlider');
+    const offsetYVal = document.getElementById('offsetYVal');
+    const presetColorBtns = document.querySelectorAll('.preset-color-btn');
+    const mfName = document.getElementById('mfName');
+    const mfShortName = document.getElementById('mfShortName');
+    const mfDescription = document.getElementById('mfDescription');
+    const mfPrefix = document.getElementById('mfPrefix');
+
+    // Canvases
+    const canvasFavicon = document.getElementById('canvasFavicon');
+    const canvas192 = document.getElementById('canvas192');
+    const canvas512 = document.getElementById('canvas512');
+    const canvasMaskable = document.getElementById('canvasMaskable');
+    const canvasApple = document.getElementById('canvasApple');
+    const svgContainer = document.getElementById('svgContainer');
+
+    // Tabs & Snippets
+    const tabHtmlBtn = document.getElementById('tabHtmlBtn');
+    const tabManifestBtn = document.getElementById('tabManifestBtn');
+    const htmlSnippetPanel = document.getElementById('htmlSnippetPanel');
+    const manifestSnippetPanel = document.getElementById('manifestSnippetPanel');
+    const copyHtmlBtn = document.getElementById('copyHtmlBtn');
+    const copyManifestBtn = document.getElementById('copyManifestBtn');
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setupDragAndDrop();
+      setupEventListeners();
+    });
+
+    function setupDragAndDrop() {
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropZone.classList.add('border-indigo-500', 'bg-indigo-500/10');
+        }, false);
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropZone.classList.remove('border-indigo-500', 'bg-indigo-500/10');
+        }, false);
+      });
+
+      dropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files && files.length > 0) {
+          handleFile(files[0]);
+        }
+      });
+
+      dropZone.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+          handleFile(e.target.files[0]);
+        }
+      });
+
+      // Clipboard Paste Event
+      window.addEventListener('paste', (e) => {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (const item of items) {
+          if (item.type.indexOf('image') !== -1) {
+            const blob = item.getAsFile();
+            handleFile(blob);
+            showToast('クリップボードから画像を読み込みました');
+            break;
+          }
+        }
+      });
+    }
+
+    function setupEventListeners() {
+      // Color Picker
+      bgColorPicker.addEventListener('input', (e) => {
+        bgColorHex.textContent = e.target.value;
+        if (loadedImage) renderAllIcons();
+      });
+
+      // Preset colors
+      presetColorBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const col = btn.getAttribute('data-color');
+          if (col === 'transparent') {
+            bgColorPicker.value = '#060814';
+            bgColorHex.textContent = '透明 (Transparent)';
+          } else {
+            bgColorPicker.value = col;
+            bgColorHex.textContent = col;
+          }
+          if (loadedImage) renderAllIcons();
+        });
+      });
+
+      // Scale Slider
+      scaleSlider.addEventListener('input', (e) => {
+        scaleVal.textContent = `${e.target.value}%`;
+        if (loadedImage) renderAllIcons();
+      });
+
+      // Offset Sliders
+      offsetXSlider.addEventListener('input', (e) => {
+        offsetXVal.textContent = `${e.target.value}px`;
+        if (loadedImage) renderAllIcons();
+      });
+
+      offsetYSlider.addEventListener('input', (e) => {
+        offsetYVal.textContent = `${e.target.value}px`;
+        if (loadedImage) renderAllIcons();
+      });
+
+      // Mask Shape Selector
+      const maskCircleBtn = document.getElementById('maskCircleBtn');
+      const maskSquircleBtn = document.getElementById('maskSquircleBtn');
+      const maskSquareBtn = document.getElementById('maskSquareBtn');
+
+      function setMaskShape(shape) {
+        currentMaskShape = shape;
+        [maskCircleBtn, maskSquircleBtn, maskSquareBtn].forEach(b => {
+          b.classList.remove('bg-indigo-600', 'text-white');
+          b.classList.add('text-slate-400');
+        });
+
+        canvasMaskable.classList.remove('rounded-full', 'rounded-2xl', 'rounded-none');
+
+        if (shape === 'circle') {
+          maskCircleBtn.classList.add('bg-indigo-600', 'text-white');
+          canvasMaskable.classList.add('rounded-full');
+        } else if (shape === 'squircle') {
+          maskSquircleBtn.classList.add('bg-indigo-600', 'text-white');
+          canvasMaskable.classList.add('rounded-2xl');
+        } else {
+          maskSquareBtn.classList.add('bg-indigo-600', 'text-white');
+          canvasMaskable.classList.add('rounded-none');
+        }
+      }
+
+      maskCircleBtn.addEventListener('click', () => setMaskShape('circle'));
+      maskSquircleBtn.addEventListener('click', () => setMaskShape('squircle'));
+      maskSquareBtn.addEventListener('click', () => setMaskShape('square'));
+
+      // Manifest Settings Inputs
+      [mfName, mfShortName, mfDescription, mfPrefix].forEach(input => {
+        input.addEventListener('input', updateManifestSnippet);
+      });
+      updateManifestSnippet();
+
+      // Screenshot Maker
+      const shotDropZone = document.getElementById('shotDropZone');
+      const shotFileInput = document.getElementById('shotFileInput');
+      shotDropZone.addEventListener('click', () => shotFileInput.click());
+      shotFileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) handleShotFile(e.target.files[0]);
+      });
+      ['dragenter', 'dragover'].forEach(ev => shotDropZone.addEventListener(ev, (e) => { e.preventDefault(); shotDropZone.classList.add('border-indigo-500'); }));
+      ['dragleave', 'drop'].forEach(ev => shotDropZone.addEventListener(ev, (e) => { e.preventDefault(); shotDropZone.classList.remove('border-indigo-500'); }));
+      shotDropZone.addEventListener('drop', (e) => {
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) handleShotFile(files[0]);
+      });
+
+      // Safe-zone Auto Fit & Guide Toggle
+      document.getElementById('autoFitBtn').addEventListener('click', autoFitMaskable);
+      document.getElementById('guideToggle').addEventListener('change', drawGuideCanvas);
+
+      // Demo Image Button
+      demoBtn.addEventListener('click', loadDemoImage);
+
+      // Download All
+      downloadAllBtn.addEventListener('click', downloadAllZip);
+
+      // Download Single
+      document.querySelectorAll('.download-single-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const target = e.currentTarget.getAttribute('data-target');
+          if (generatedBlobs[target]) {
+            saveAs(generatedBlobs[target], target);
+            showToast(`${target} をダウンロードしました`);
+          }
+        });
+      });
+
+      // Code Snippet Tabs
+      tabHtmlBtn.addEventListener('click', () => {
+        tabHtmlBtn.classList.replace('bg-slate-800', 'bg-indigo-600');
+        tabHtmlBtn.classList.replace('text-slate-400', 'text-white');
+        tabManifestBtn.classList.replace('bg-indigo-600', 'bg-slate-800');
+        tabManifestBtn.classList.replace('text-white', 'text-slate-400');
+        htmlSnippetPanel.classList.remove('hidden');
+        manifestSnippetPanel.classList.add('hidden');
+      });
+
+      tabManifestBtn.addEventListener('click', () => {
+        tabManifestBtn.classList.replace('bg-slate-800', 'bg-indigo-600');
+        tabManifestBtn.classList.replace('text-slate-400', 'text-white');
+        tabHtmlBtn.classList.replace('bg-indigo-600', 'bg-slate-800');
+        tabHtmlBtn.classList.replace('text-white', 'text-slate-400');
+        manifestSnippetPanel.classList.remove('hidden');
+        htmlSnippetPanel.classList.add('hidden');
+      });
+
+      // Copy Code Buttons
+      copyHtmlBtn.addEventListener('click', () => {
+        const text = document.getElementById('codeHtml').innerText;
+        copyToClipboard(text, 'HTMLコードをコピーしました');
+      });
+
+      copyManifestBtn.addEventListener('click', () => {
+        const text = document.getElementById('codeManifest').innerText;
+        copyToClipboard(text, 'manifest.jsonコードをコピーしました');
+      });
+    }
+
+    function handleFile(file) {
+      if (!file.type.startsWith('image/')) {
+        showToast('画像ファイルを選択してください', true);
+        return;
+      }
+
+      // SVGファイルはベクターのまま icon.svg に使うため、テキストも保持する
+      const isSvgFile = file.type === 'image/svg+xml' || /\.svg$/i.test(file.name || '');
+      if (isSvgFile) {
+        const textReader = new FileReader();
+        textReader.onload = (e) => { loadedSvgText = e.target.result; };
+        textReader.readAsText(file);
+      } else {
+        loadedSvgText = null;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          loadedImage = img;
+          sourcePreview.src = e.target.result;
+          sourcePreviewWrapper.classList.remove('hidden');
+          
+          // Update Status
+          statusBadge.className = 'text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5';
+          statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> 生成完了 (${img.naturalWidth}×${img.naturalHeight}px)`;
+
+          renderAllIcons();
+          enableButtons();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function loadDemoImage() {
+      loadedSvgText = null;
+      const demoCanvas = document.createElement('canvas');
+      demoCanvas.width = 512;
+      demoCanvas.height = 512;
+      const ctx = demoCanvas.getContext('2d');
+
+      // Dark Blue Background matching user screenshot style
+      ctx.fillStyle = '#060814';
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Camera Icon body
+      ctx.fillStyle = '#1c283f';
+      ctx.strokeStyle = '#5b9dff';
+      ctx.lineWidth = 14;
+      ctx.beginPath();
+      ctx.roundRect(100, 130, 312, 240, 32);
+      ctx.fill();
+      ctx.stroke();
+
+      // Lens outer circle
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(256, 250, 80, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Lens inner red circle (REC)
+      ctx.fillStyle = '#e11d48';
+      ctx.beginPath();
+      ctx.arc(256, 250, 50, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Decorative lines
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(115, 160, 70, 12);
+      ctx.fillRect(115, 190, 42, 8);
+
+      // REC text
+      ctx.font = '900 42px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('REC', 256, 435);
+
+      const demoDataUrl = demoCanvas.toDataURL('image/png');
+      const img = new Image();
+      img.onload = () => {
+        loadedImage = img;
+        sourcePreview.src = demoDataUrl;
+        sourcePreviewWrapper.classList.remove('hidden');
+        
+        statusBadge.className = 'text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5';
+        statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> サンプル生成完了`;
+
+        renderAllIcons();
+        enableButtons();
+        showToast('サンプル画像を読み込みました');
+      };
+      img.src = demoDataUrl;
+    }
+
+    function enableButtons() {
+      downloadAllBtn.disabled = false;
+      document.querySelectorAll('.download-single-btn').forEach(btn => btn.disabled = false);
+    }
+
+    async function renderAllIcons() {
+      if (!loadedImage) return;
+
+      const isTransparentBg = bgColorHex.textContent.includes('透明');
+      const bgColor = isTransparentBg ? 'transparent' : bgColorPicker.value;
+      const scaleRatio = parseInt(scaleSlider.value, 10) / 100;
+      const offsetX = parseInt(offsetXSlider.value, 10);
+      const offsetY = parseInt(offsetYSlider.value, 10);
+
+      // 1. icon-192x192.png
+      const blob192 = await drawToCanvas(canvas192, 192, 192, loadedImage, 'transparent', 1.0, 0, 0);
+      generatedBlobs['icon-192x192.png'] = blob192;
+
+      // 2. icon-512x512.png
+      const blob512 = await drawToCanvas(canvas512, 512, 512, loadedImage, 'transparent', 1.0, 0, 0);
+      generatedBlobs['icon-512x512.png'] = blob512;
+
+      // 3. maskable-512x512.png (Applies solid bg, user scale & offsets matching requested layout)
+      const maskBgColor = isTransparentBg ? '#060814' : bgColor;
+      const blobMaskable = await drawToCanvas(canvasMaskable, 512, 512, loadedImage, maskBgColor, scaleRatio, offsetX, offsetY);
+      generatedBlobs['maskable-512x512.png'] = blobMaskable;
+
+      // 4. apple-touch-icon.png (180x180)
+      const appleBg = isTransparentBg ? '#ffffff' : bgColor;
+      const blobApple = await drawToCanvas(canvasApple, 180, 180, loadedImage, appleBg, scaleRatio, offsetX * 0.35, offsetY * 0.35);
+      generatedBlobs['apple-touch-icon.png'] = blobApple;
+
+      // 5. favicon.ico (16 / 32 / 48 のマルチサイズ)
+      const c16 = document.getElementById('workCanvas16');
+      const c32 = document.getElementById('workCanvas32');
+      const c48 = document.getElementById('workCanvas48');
+      await drawToCanvas(c16, 16, 16, loadedImage, 'transparent', 1.0, 0, 0);
+      await drawToCanvas(c32, 32, 32, loadedImage, 'transparent', 1.0, 0, 0);
+      await drawToCanvas(c48, 48, 48, loadedImage, 'transparent', 1.0, 0, 0);
+
+      await drawToCanvas(canvasFavicon, 32, 32, loadedImage, 'transparent', 1.0, 0, 0);
+
+      const blobIco = await createIcoFromCanvases([c16, c32, c48]);
+      generatedBlobs['favicon.ico'] = blobIco;
+
+      // Maskableチェックパネル(3種マスク+ガイド)にも反映
+      updateMaskableCheck(blobMaskable);
+      updateManifestSnippet();
+
+      // 6. icon.svg
+      const blobSvg = createSvgBlob(loadedImage);
+      generatedBlobs['icon.svg'] = blobSvg;
+
+      const svgUrl = URL.createObjectURL(blobSvg);
+      svgContainer.innerHTML = `<img src="${svgUrl}" class="w-12 h-12 object-contain" alt="SVG preview">`;
+    }
+
+    // 大きな画像を小さく描くときは、中間キャンバスで半分ずつ縮小して画質を保つ
+    function drawImageStepped(ctx, img, dx, dy, dw, dh) {
+      const srcW = img.naturalWidth;
+      const srcH = img.naturalHeight;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      if (!srcW || !srcH || dw >= srcW / 2) {
+        ctx.drawImage(img, dx, dy, dw, dh);
+        return;
+      }
+      let cur = document.createElement('canvas');
+      cur.width = srcW;
+      cur.height = srcH;
+      cur.getContext('2d').drawImage(img, 0, 0);
+      let curW = srcW;
+      let curH = srcH;
+      while (curW * 0.5 > dw) {
+        const next = document.createElement('canvas');
+        next.width = Math.max(1, Math.floor(curW * 0.5));
+        next.height = Math.max(1, Math.floor(curH * 0.5));
+        const nctx = next.getContext('2d');
+        nctx.imageSmoothingEnabled = true;
+        nctx.imageSmoothingQuality = 'high';
+        nctx.drawImage(cur, 0, 0, next.width, next.height);
+        cur = next;
+        curW = next.width;
+        curH = next.height;
+      }
+      ctx.drawImage(cur, dx, dy, dw, dh);
+    }
+
+    // Helper: Draw image on Canvas with precise scale, background & center offsets
+    function drawToCanvas(canvas, width, height, img, bg, scaleRatio = 1.0, offX = 0, offY = 0) {
+      return new Promise((resolve) => {
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, width, height);
+
+        // Fill background if specified
+        if (bg && bg !== 'transparent') {
+          ctx.fillStyle = bg;
+          ctx.fillRect(0, 0, width, height);
+        }
+
+        // Calculate aspect-ratio fitted & scaled dimensions
+        const imgAspect = img.naturalWidth / img.naturalHeight;
+        let drawWidth = width * scaleRatio;
+        let drawHeight = height * scaleRatio;
+
+        if (imgAspect > 1) {
+          drawHeight = drawWidth / imgAspect;
+        } else {
+          drawWidth = drawHeight * imgAspect;
+        }
+
+        const x = (width - drawWidth) / 2 + (offX * (width / 512));
+        const y = (height - drawHeight) / 2 + (offY * (height / 512));
+
+        drawImageStepped(ctx, img, x, y, drawWidth, drawHeight);
+
+        canvas.toBlob((blob) => {
+          resolve(blob);
+        }, 'image/png');
+      });
+    }
+
+    async function createIcoFromCanvases(canvases) {
+      const pngBuffers = [];
+      for (const canvas of canvases) {
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+        pngBuffers.push(await blob.arrayBuffer());
+      }
+
+      const count = canvases.length;
+      const headerSize = 6 + (16 * count);
+      let totalSize = headerSize;
+      pngBuffers.forEach(buf => totalSize += buf.byteLength);
+
+      const buffer = new ArrayBuffer(totalSize);
+      const view = new DataView(buffer);
+
+      // ICONDIR Header
+      view.setUint16(0, 0, true); // Reserved
+      view.setUint16(2, 1, true); // Resource Type (1 = ICO)
+      view.setUint16(4, count, true); // Image count
+
+      let currentOffset = headerSize;
+      for (let i = 0; i < count; i++) {
+        const canvas = canvases[i];
+        const pngBuf = pngBuffers[i];
+        const entryOffset = 6 + (i * 16);
+
+        const w = canvas.width >= 256 ? 0 : canvas.width;
+        const h = canvas.height >= 256 ? 0 : canvas.height;
+
+        // ICONDIRENTRY
+        view.setUint8(entryOffset + 0, w);
+        view.setUint8(entryOffset + 1, h);
+        view.setUint8(entryOffset + 2, 0); // Palette count
+        view.setUint8(entryOffset + 3, 0); // Reserved
+        view.setUint16(entryOffset + 4, 1, true); // Color Planes
+        view.setUint16(entryOffset + 6, 32, true); // Bits per pixel
+        view.setUint32(entryOffset + 8, pngBuf.byteLength, true); // Image Size
+        view.setUint32(entryOffset + 12, currentOffset, true); // Offset
+
+        // Copy PNG bytes into ICO buffer
+        const dest = new Uint8Array(buffer, currentOffset, pngBuf.byteLength);
+        dest.set(new Uint8Array(pngBuf));
+
+        currentOffset += pngBuf.byteLength;
+      }
+
+      return new Blob([buffer], { type: 'image/x-icon' });
+    }
+
+    function createSvgBlob(img) {
+      // 元画像がSVGなら、ベクターのまま使う(劣化も肥大化もしない)
+      if (loadedSvgText) {
+        return new Blob([loadedSvgText], { type: 'image/svg+xml' });
+      }
+      // ラスター画像は最大512pxに縮小して埋め込み、容量を抑える
+      const maxSize = 512;
+      const srcW = img.naturalWidth || maxSize;
+      const srcH = img.naturalHeight || maxSize;
+      const ratio = Math.min(1, maxSize / Math.max(srcW, srcH));
+      const c = document.createElement('canvas');
+      c.width = Math.round(srcW * ratio);
+      c.height = Math.round(srcH * ratio);
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      const dataUrl = c.toDataURL('image/png');
+
+      const svgString = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${c.width} ${c.height}" width="${c.width}" height="${c.height}">
+  <image href="${dataUrl}" width="${c.width}" height="${c.height}" />
+</svg>`;
+
+      return new Blob([svgString], { type: 'image/svg+xml' });
+    }
+
+    // Maskableチェックパネル: 3種マスクのプレビュー画像を差し替える
+    let maskableCheckUrl = null;
+    function updateMaskableCheck(blob) {
+      if (maskableCheckUrl) URL.revokeObjectURL(maskableCheckUrl);
+      maskableCheckUrl = URL.createObjectURL(blob);
+      ['checkCircle', 'checkSquircle', 'checkRounded'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.src = maskableCheckUrl;
+      });
+      drawGuideCanvas();
+    }
+
+    // 安全領域ガイド: 現在の maskable 描画に中央80%の円を重ねる
+    function drawGuideCanvas() {
+      const guide = document.getElementById('checkGuide');
+      if (!guide || !loadedImage) return;
+      const gtx = guide.getContext('2d');
+      gtx.clearRect(0, 0, 512, 512);
+      gtx.drawImage(canvasMaskable, 0, 0);
+      const toggle = document.getElementById('guideToggle');
+      if (toggle && !toggle.checked) return;
+      gtx.strokeStyle = 'rgba(244, 63, 94, 0.95)';
+      gtx.lineWidth = 5;
+      gtx.beginPath();
+      gtx.arc(256, 256, 204.8, 0, Math.PI * 2);
+      gtx.stroke();
+      gtx.strokeStyle = 'rgba(244, 63, 94, 0.45)';
+      gtx.lineWidth = 2;
+      gtx.beginPath();
+      gtx.moveTo(256, 0);
+      gtx.lineTo(256, 512);
+      gtx.moveTo(0, 256);
+      gtx.lineTo(512, 256);
+      gtx.stroke();
+    }
+
+    // 安全領域に自動調整: 背景と異なる部分が中央80%の円に収まるスケールを求める
+    async function autoFitMaskable() {
+      if (!loadedImage) {
+        showToast('先に画像を読み込んでください', true);
+        return;
+      }
+      // 位置は中央に戻してから測る
+      offsetXSlider.value = 0;
+      offsetYSlider.value = 0;
+      offsetXVal.textContent = '0px';
+      offsetYVal.textContent = '0px';
+      await renderAllIcons();
+
+      const isTransparentBg = bgColorHex.textContent.includes('透明');
+      const maskBgColor = isTransparentBg ? '#060814' : bgColorPicker.value;
+      const bgRgb = [
+        parseInt(maskBgColor.slice(1, 3), 16),
+        parseInt(maskBgColor.slice(3, 5), 16),
+        parseInt(maskBgColor.slice(5, 7), 16)
+      ];
+
+      const mctx = canvasMaskable.getContext('2d');
+      const pixels = mctx.getImageData(0, 0, 512, 512).data;
+      let maxR = 0;
+      for (let y = 0; y < 512; y += 2) {
+        for (let x = 0; x < 512; x += 2) {
+          const i = (y * 512 + x) * 4;
+          const diff = Math.abs(pixels[i] - bgRgb[0]) + Math.abs(pixels[i + 1] - bgRgb[1]) + Math.abs(pixels[i + 2] - bgRgb[2]);
+          if (diff > 24) {
+            const dx = x - 256;
+            const dy = y - 256;
+            const r = Math.sqrt(dx * dx + dy * dy);
+            if (r > maxR) maxR = r;
+          }
+        }
+      }
+
+      const safeR = 512 * 0.4; // 安全領域の半径 = 204.8px
+      if (maxR === 0) {
+        showToast('調整できる内容が見つかりませんでした', true);
+        return;
+      }
+      if (maxR <= safeR) {
+        drawGuideCanvas();
+        showToast('すでに安全領域に収まっています');
+        return;
+      }
+      const currentScale = parseInt(scaleSlider.value, 10);
+      let newScale = Math.floor(currentScale * (safeR / maxR));
+      newScale = Math.max(30, Math.min(150, newScale));
+      scaleSlider.value = newScale;
+      scaleVal.textContent = newScale + '%';
+      await renderAllIcons();
+      showToast('安全領域に合わせて ' + newScale + '% に調整しました');
+    }
+
+    // スクリーンショット作成: cover (中央切り抜き) で正確なサイズに合わせる
+    function drawScreenshot(canvas, img, tw, th) {
+      return new Promise((resolve) => {
+        canvas.width = tw;
+        canvas.height = th;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, tw, th);
+        const scale = Math.max(tw / img.naturalWidth, th / img.naturalHeight);
+        const dw = img.naturalWidth * scale;
+        const dh = img.naturalHeight * scale;
+        drawImageStepped(ctx, img, (tw - dw) / 2, (th - dh) / 2, dw, dh);
+        canvas.toBlob((blob) => resolve(blob), 'image/png');
+      });
+    }
+
+    async function handleShotFile(file) {
+      if (!file || !file.type.startsWith('image/')) {
+        showToast('画像ファイルを選択してください', true);
+        return;
+      }
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = async () => {
+        generatedBlobs['screenshot-wide.png'] = await drawScreenshot(document.getElementById('canvasShotWide'), img, 1280, 720);
+        generatedBlobs['screenshot-mobile.png'] = await drawScreenshot(document.getElementById('canvasShotMobile'), img, 390, 844);
+        document.querySelectorAll('[data-target="screenshot-wide.png"], [data-target="screenshot-mobile.png"]').forEach(b => b.disabled = false);
+        downloadAllBtn.disabled = false;
+        showToast('スクリーンショットを作成しました（一括ZIPにも含まれます）');
+      };
+      img.src = url;
+    }
+
+    // manifest.json を PWAジェネレーターと同一形式で生成する
+    function buildManifestJson() {
+      const name = mfName.value.trim() || '(アプリ名を入力してください)';
+      const shortName = mfShortName.value.trim() || '(短縮名を入力してください)';
+      const description = mfDescription.value.trim() || '(説明文を入力してください)';
+      const prefix = mfPrefix.value.trim() || 'app';
+      const isTransparentBg = bgColorHex.textContent.includes('透明');
+      const color = isTransparentBg ? '#ffffff' : bgColorPicker.value;
+
+      const manifestObj = {
+        "id": "./" + prefix,
+        "name": name,
+        "short_name": shortName,
+        "description": description,
+        "lang": "ja",
+        "start_url": "./index.html",
+        "scope": "./",
+        "display": "standalone",
+        "orientation": "any",
+        "background_color": color,
+        "theme_color": color,
+        "prefer_related_applications": false,
+        "icons": [
+          { "src": "./icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+          { "src": "./icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+          { "src": "./maskable-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+        ],
+        "screenshots": [
+          { "src": "./screenshot-wide.png", "sizes": "1280x720", "type": "image/png", "form_factor": "wide", "label": "ワイド画面" },
+          { "src": "./screenshot-mobile.png", "sizes": "390x844", "type": "image/png", "form_factor": "narrow", "label": "モバイル画面" }
+        ]
+      };
+
+      return JSON.stringify(manifestObj, null, 2);
+    }
+
+    function updateManifestSnippet() {
+      const el = document.getElementById('codeManifest');
+      if (el) el.textContent = buildManifestJson();
+    }
+
+    async function downloadAllZip() {
+      if (Object.keys(generatedBlobs).length === 0) return;
+
+      const zip = new JSZip();
+      
+      // Add all generated files to ZIP
+      for (const [filename, blob] of Object.entries(generatedBlobs)) {
+        zip.file(filename, blob);
+      }
+
+      // Add manifest.json example to ZIP for convenience
+      const manifestText = document.getElementById('codeManifest').innerText;
+      zip.file('manifest.json', manifestText);
+
+      // Generate ZIP blob and trigger download
+      downloadAllBtn.disabled = true;
+      downloadAllBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 圧縮中...`;
+
+      try {
+        const content = await zip.generateAsync({ type: 'blob' });
+        saveAs(content, 'pwa-icons.zip');
+        showToast('icons.zip をダウンロードしました！');
+      } catch (err) {
+        showToast('ZIP作成に失敗しました', true);
+      } finally {
+        downloadAllBtn.disabled = false;
+        downloadAllBtn.innerHTML = `<i class="fa-solid fa-file-zipper"></i> 一括ZIPダウンロード`;
+      }
+    }
+
+    function copyToClipboard(text, message) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast(message);
+        });
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showToast(message);
+      }
+    }
+
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastMsg.textContent = msg;
+      if (isError) {
+        toastIcon.className = 'fa-solid fa-circle-exclamation text-rose-400 text-base';
+      } else {
+        toastIcon.className = 'fa-solid fa-circle-check text-emerald-400 text-base';
+      }
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+  </script>
+
+<!-- PWA_GENERATOR_SW_REGISTRATION -->
+<script>
+(function () {
+    function registerPwaServiceWorker() {
+        if (!("serviceWorker" in navigator)) return;
+        navigator.serviceWorker.register("./sw.js")
+            .then(function (registration) {
+                console.log("Service Worker registered successfully:", registration.scope);
+            })
+            .catch(function (error) {
+                console.error("Service Worker registration failed:", error);
+            });
+    }
+    // window.onload を上書きせず、既存アプリの初期化処理と共存させる
+    window.addEventListener("load", registerPwaServiceWorker);
+})();
+</script>
+</body>
+</html>
