@@ -1,7 +1,7 @@
 {
   "id": "./pwa_icon",
-  "name": "PWAアイコン一括作成",
-  "short_name": "PWAアイコン",
+  "name": "PWAアイコン作成",
+  "short_name": "PWAアイコン作成",
   "description": "画像からPWAアイコンを\n一括に作成する",
   "lang": "ja",
   "start_url": "./index.html",
