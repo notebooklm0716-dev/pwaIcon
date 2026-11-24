@@ -68,10 +68,6 @@
         </div>
       </div>
       <div class="flex items-center gap-3">
-        <button id="demoBtn" class="px-3 py-1.5 text-xs font-medium bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-all duration-200 flex items-center gap-2">
-          <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
-          サンプル画像で試す
-        </button>
         <button id="downloadAllBtn" disabled class="px-4 py-2 text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-lg shadow-lg shadow-indigo-600/30 transition-all duration-200 flex items-center gap-2 disabled:shadow-none disabled:cursor-not-allowed">
           <i class="fa-solid fa-file-zipper"></i>
           一括ZIPダウンロード
@@ -472,7 +468,6 @@
     const fileInput = document.getElementById('fileInput');
     const sourcePreview = document.getElementById('sourcePreview');
     const sourcePreviewWrapper = document.getElementById('sourcePreviewWrapper');
-    const demoBtn = document.getElementById('demoBtn');
     const downloadAllBtn = document.getElementById('downloadAllBtn');
     const statusBadge = document.getElementById('statusBadge');
     
@@ -652,9 +647,6 @@
       document.getElementById('autoFitBtn').addEventListener('click', autoFitMaskable);
       document.getElementById('guideToggle').addEventListener('change', drawGuideCanvas);
 
-      // Demo Image Button
-      demoBtn.addEventListener('click', loadDemoImage);
-
       // Download All
       downloadAllBtn.addEventListener('click', downloadAllZip);
 
@@ -734,65 +726,6 @@
         img.src = e.target.result;
       };
       reader.readAsDataURL(file);
-    }
-
-    function loadDemoImage() {
-      loadedSvgText = null;
-      const demoCanvas = document.createElement('canvas');
-      demoCanvas.width = 512;
-      demoCanvas.height = 512;
-      const ctx = demoCanvas.getContext('2d');
-
-      // Dark Blue Background matching user screenshot style
-      ctx.fillStyle = '#060814';
-      ctx.fillRect(0, 0, 512, 512);
-
-      // Camera Icon body
-      ctx.fillStyle = '#1c283f';
-      ctx.strokeStyle = '#5b9dff';
-      ctx.lineWidth = 14;
-      ctx.beginPath();
-      ctx.roundRect(100, 130, 312, 240, 32);
-      ctx.fill();
-      ctx.stroke();
-
-      // Lens outer circle
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(256, 250, 80, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Lens inner red circle (REC)
-      ctx.fillStyle = '#e11d48';
-      ctx.beginPath();
-      ctx.arc(256, 250, 50, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Decorative lines
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(115, 160, 70, 12);
-      ctx.fillRect(115, 190, 42, 8);
-
-      // REC text
-      ctx.font = '900 42px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('REC', 256, 435);
-
-      const demoDataUrl = demoCanvas.toDataURL('image/png');
-      const img = new Image();
-      img.onload = () => {
-        loadedImage = img;
-        sourcePreview.src = demoDataUrl;
-        sourcePreviewWrapper.classList.remove('hidden');
-        
-        statusBadge.className = 'text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5';
-        statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> サンプル生成完了`;
-
-        renderAllIcons();
-        enableButtons();
-        showToast('サンプル画像を読み込みました');
-      };
-      img.src = demoDataUrl;
     }
 
     function enableButtons() {
